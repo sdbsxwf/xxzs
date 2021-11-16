@@ -90,7 +90,7 @@ function pp() {
                 toastLog(tk[i].w + "\n" + s + "\n---------")
                 for (var j = 0; j < s.length; j++) {
                     click(s.charAt(j));
-                    sleep(1000);
+                    sleep(500);
                 }
                 break;
             }
