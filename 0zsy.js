@@ -21,7 +21,7 @@ var window = floaty.window(
     <vertical>
         <input id="w" text="" hint="" textSize="12sp"   bg="#77dddddd" lines="4"/>
         <input id="wb" text="" hint="" textSize="12sp"   bg="#77dddddd" lines="4"/>
-        <button id="action" text="开始运行" w="90" h="40" bg="#77ffffff"/>
+        <button id="action" text="移动" w="90" h="40" bg="#77ffffff"/>
         <button id="dt" text="答题" w="90" h="40" bg="#77ffffff"/>
     </vertical>
 );
@@ -67,14 +67,14 @@ window.action.setOnTouchListener(function(view, event) {
 });
 
 function onClick() {
-    if (window.action.getText() == '开始运行') {
+    if (window.action.getText() == '移动') {
         //  execution = engines.execScriptFile(path);
         window.action.setText('停止运行');
     } else {
         if (execution) {
             execution.getEngine().forceStop();
         }
-        window.action.setText('开始运行');
+        window.action.setText('移动');
     }
 }
 
@@ -84,12 +84,13 @@ function jietu(xx, yy, kk, gg) {
     var img = captureScreen();
     // var clip=images.clip(img, tis.left, tis.top, tis.width(), tis.height())
     var clip = images.clip(img, xx, yy, kk, gg)
-    images.save(clip, "1.png");
+    images.save(clip, "1.png","png", 100);
     // toastLog(t);
     var t = Baidu_OCR("1.png");
 
     // 回收图片
     img.recycle();
+    clip.recycle();
     var aa = zl(t)
     return aa
 }
@@ -99,32 +100,37 @@ function zl(ti) {
 }
 //1.2获取问题。
 function huoquwenti() {
-    log("已点答题按键");
-    var ti = className("android.widget.ListView").findOnce();
-    var tis = ti.parent().bounds();
-    // toastLog(tis);
-    var t = jietu(tis.left, tis.top, tis.width(), 70);
-    log(t);
-    ui.run(function() {
-        window.w.setText(">" + t);
-    })
-    var jie = ""; //建空列表,放结果
-    for (var i = 0; i < zidian.length; i++) {
-        var tks = zl(zidian[i].wenti);
-        var jieguo = tks.indexOf(t); //问题匹配筛选。
-        if (jieguo >= 0) {
-            var jies = zidian[i].daan;
-            jie += jies; //结果放入列表。
+    try {
+        log("已点答题按键");
+        var ti = className("android.widget.ListView").findOne(5000);
+        var tis = ti.parent().bounds();
+        // toastLog(tis);
+        var t = jietu(tis.left, tis.top, tis.width(), 70);
+        log(t);
+        ui.run(function() {
+            window.w.setText(">" + t);
+        })
+        var jie = ""; //建空列表,放结果
+        for (var i = 0; i < zidian.length; i++) {
+            var tks = zl(zidian[i].wenti);
+            var jieguo = tks.indexOf(t); //问题匹配筛选。
+            if (jieguo >= 0) {
+                var jies = zidian[i].daan;
+                jie += jies+"\n"; //结果放入列表。
+            }
         }
+        ui.run(function() {
+            window.wb.setText(">" + jie);
+        })
+        log("答案:>>" + jie.slice(0, 50) + "<<\n"); //匹配字典答案结果。
+    } catch (e) {
+        ui.run(function() {
+            window.w.setText("未获取");
+        })
     }
-    ui.run(function() {
-        window.wb.setText(">" + jie);
-    })
-    log("答案:>>" + jie.slice(0, 50) + "<<\n"); //匹配字典答案结果。
-
 }
 
-
+/*
 
 //此代码由飞云脚本圈整理提供（www.feiyunjs.com）
 function Baidu_OCR(imgFile) {
@@ -141,6 +147,27 @@ function Baidu_OCR(imgFile) {
     });
     str = JSON.parse(res.body.string()).words_result.map(val => val.words).join('\n');
     return str;
+}
+*/
+//修改
+function Baidu_OCR(imgFile) {
+    access_token = http.get("https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=YIKKfQbdpYRRYtqqTPnZ5bCE&client_secret=hBxFiPhOCn6G9GH0sHoL0kTwfrCtndDj").body.json().access_token;
+    url = "https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic" + "?access_token=" + access_token;
+    imag64 = images.toBase64(images.read(imgFile), "png", 100);
+    res = http.post(url, {
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        image: imag64,
+        image_type: "BASE64",
+        language_type: "CHN_ENG"
+    });
+    //  log(res.body.string());
+    ///   str = JSON.parse(res.body.string()).words_result.map(val => val.words).join('\n');
+    var strs = JSON.parse(res.body.string());
+    var strss = strs["words_result"][0]["words"];
+    log(strss);
+    return strss;
 }
 
 //imgFile="/storage/emulated/0/脚本/1.png";
@@ -176,9 +203,7 @@ function tiku(tikues) {
 
 window.dt.click(function() {
     threads.start(function() {
+
         huoquwenti();
     })
 })
-
-
-
