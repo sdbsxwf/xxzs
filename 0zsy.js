@@ -84,10 +84,9 @@ function jietu(xx, yy, kk, gg) {
     var img = captureScreen();
     // var clip=images.clip(img, tis.left, tis.top, tis.width(), tis.height())
     var clip = images.clip(img, xx, yy, kk, gg)
-    images.save(clip, "1.png","png", 100);
+    images.save(clip, "1.png", "png", 100);
     // toastLog(t);
     var t = Baidu_OCR("1.png");
-
     // 回收图片
     img.recycle();
     clip.recycle();
@@ -102,27 +101,53 @@ function zl(ti) {
 function huoquwenti() {
     try {
         log("已点答题按键");
-        var ti = className("android.widget.ListView").findOne(5000);
-        var tis = ti.parent().bounds();
+        //  var ti = className("android.widget.ListView").findOne(5000);
+        //  var tis = ti.parent().bounds();
+        // toastLog(tis);
+        var ties = className("android.widget.ListView").findOne(5000);
+        var tis = ties.parent().bounds();
         // toastLog(tis);
         var t = jietu(tis.left, tis.top, tis.width(), 70);
+        //    var t = jietu(91, 660, 915, 70);
+        if (t == "") {
+            t = "失败"
+        }
         log(t);
         ui.run(function() {
             window.w.setText(">" + t);
         })
         var jie = ""; //建空列表,放结果
+        var jies = ""
         for (var i = 0; i < zidian.length; i++) {
             var tks = zl(zidian[i].wenti);
             var jieguo = tks.indexOf(t); //问题匹配筛选。
             if (jieguo >= 0) {
-                var jies = zidian[i].daan;
-                jie += jies+"\n"; //结果放入列表。
+                jie = zidian[i].daan;
+                jies = zidian[i].da;
+                break;
             }
         }
         ui.run(function() {
-            window.wb.setText(">" + jie);
+            window.wb.setText(">" + jies + "-" + jie);
         })
-        log("答案:>>" + jie.slice(0, 50) + "<<\n"); //匹配字典答案结果。
+        log("答案:" + jies + "-" + jie); //匹配字典答案结果。
+
+        var ti = className("android.widget.ListView").findOne(5000).children();
+        //  toastLog(ti.length)
+        // toastLog(ti[0].bounds().centerX(), ti[0].bounds().centerY())
+        var sy = ["A", "B", "C", "D", "E"];
+        if (jies != "") {
+            for (var j = 0; j < ti.length; j++) {
+                if (sy[j] == jies) {
+                    click(ti[j].bounds().centerX(), ti[j].bounds().centerY())
+                    break;
+                }
+            }
+        } else {
+            toastLog("随便点一个")
+            click(ti[0].bounds().centerX(), ti[0].bounds().centerY())
+        }
+
     } catch (e) {
         ui.run(function() {
             window.w.setText("未获取");
@@ -151,23 +176,27 @@ function Baidu_OCR(imgFile) {
 */
 //修改
 function Baidu_OCR(imgFile) {
-    access_token = http.get("https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=YIKKfQbdpYRRYtqqTPnZ5bCE&client_secret=hBxFiPhOCn6G9GH0sHoL0kTwfrCtndDj").body.json().access_token;
-    url = "https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic" + "?access_token=" + access_token;
-    imag64 = images.toBase64(images.read(imgFile), "png", 100);
-    res = http.post(url, {
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        image: imag64,
-        image_type: "BASE64",
-        language_type: "CHN_ENG"
-    });
-    //  log(res.body.string());
-    ///   str = JSON.parse(res.body.string()).words_result.map(val => val.words).join('\n');
-    var strs = JSON.parse(res.body.string());
-    var strss = strs["words_result"][0]["words"];
-    log(strss);
-    return strss;
+    try {
+        access_token = http.get("https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=YIKKfQbdpYRRYtqqTPnZ5bCE&client_secret=hBxFiPhOCn6G9GH0sHoL0kTwfrCtndDj").body.json().access_token;
+        url = "https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic" + "?access_token=" + access_token;
+        imag64 = images.toBase64(images.read(imgFile), "png", 100);
+        res = http.post(url, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            image: imag64,
+            image_type: "BASE64",
+            language_type: "CHN_ENG"
+        });
+        //  log(res.body.string());
+        ///   str = JSON.parse(res.body.string()).words_result.map(val => val.words).join('\n');
+        var strs = JSON.parse(res.body.string());
+        var strss = strs["words_result"][0]["words"];
+        log(strs);
+        return strss;
+    } catch (e) {
+        return "识别文字失败"
+    }
 }
 
 //imgFile="/storage/emulated/0/脚本/1.png";
